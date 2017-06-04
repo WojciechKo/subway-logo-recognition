@@ -8,14 +8,11 @@ class ImageSegmenter:
         self.boxes = {}
 
         self.find_segments()
-    
+
     def segments(self):
-        return [self.segment(key) for key in self.boxes]
-
-    def segment(self, key):
-        box = self.boxes[key]
-        return np.where(self.segmented_image == key, 255, 0)[box[0].min():box[0].max(), box[1].min():box[1].max()]
-
+        return [(self.boxes[group_id], self.segment(group_id)) for group_id in self.boxes]
+    
+    # PRIVATE PART duno how :(
     def find_segments(self):
         self.segmented_image = np.zeros_like(self.image)
         self.boxes = {}
@@ -30,6 +27,10 @@ class ImageSegmenter:
 
         return (self.segmented_image, self.boxes)
 
+    def segment(self, key):
+        box = self.boxes[key]
+        return np.where(self.segmented_image == key, 255, 0)[box[0].min():box[0].max(), box[1].min():box[1].max()]
+
     def find_segment(self, index, group):
         points = set([index])
         min_y, min_x = index
@@ -38,7 +39,7 @@ class ImageSegmenter:
         while(len(points) > 0):
             point = points.pop()
             self.segmented_image[point] = group
-            for surround in ImageUtils().surrounding(self.image, point):
+            for surround in ImageUtils().neighbourhood(self.image, point, 1):
                 if self.image[surround] == 255 and self.segmented_image[surround] == 0:
                     sur_y, sur_x = surround
 
