@@ -7,19 +7,28 @@ from image_modifier import ImageModifier
 from image_segmenter import ImageSegmenter
 
 class ImageAnalizer:
-    def analize(image_path):
+    def analize(self, image_path):
         print("Analizing... " + image_path)
         image = cv2.imread(image_path, 3)
-
         image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        way = np.where((image_hsv > 23) & (image_hsv < 36), 255, 0)[:,:,0]
+        h = image_hsv[:,:,0]
+        s = image_hsv[:,:,1]
+        v = image_hsv[:,:,2]
 
-        kernel = np.ones((5,5),np.uint8)
+        way_image = np.where((h > 20) & (h < 36) & (v > 200), 255, 0)
+        sub_image = np.where((s < 30) & (v > 220), 255, 0)
 
-        way = ImageModifier().erode(way)
-        way = ImageModifier().dilate(way)
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_sub.png'), sub_image)
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_way.png'), way_image)
 
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_way.png'), way);
+        image = np.maximum(way_image, sub_image)
 
-        way_segments, boxes = ImageSegmenter(way).find_segments()
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '2_way_segments.png'), way_segments);
+        print("erode...")
+        image = ImageModifier().erode(image, 3)
+        print("dilate...")
+        image = ImageModifier().dilate(image, 3)
+
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), '2_subway.png'), image)
+
+        image_segmenter = ImageSegmenter(image)
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), '3_segments.png'), image_segmenter.segmented_image);
