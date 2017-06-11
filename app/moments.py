@@ -7,11 +7,14 @@ class HuInvariants:
         self.normalized_central_moments = NormalizedCentralMoments(image)
 
     def invariants(self):
-        return { 1: self.invariant_1(),
-                 2: self.invariant_2(),
-                 3: self.invariant_3(),
-                 4: self.invariant_4(),
-                 5: self.invariant_5() }
+        inv = { 1: self.invariant_1(),
+                2: self.invariant_2(),
+                3: self.invariant_3(),
+                4: self.invariant_4(),
+                5: self.invariant_5(),
+                6: self.invariant_6(),
+                7: self.invariant_7() }
+        return inv
 
     def invariant_1(self):
         return self.n(2, 0) + self.n(0, 2)
@@ -27,22 +30,47 @@ class HuInvariants:
         return first_part + second_part
 
     def invariant_4(self):
-        first_part = pow((self.n(3, 0) + self.n(1, 2)), 2)
+        first_part = pow(self.n(3, 0) + self.n(1, 2), 2)
         second_part = pow(self.n(2, 1) + self.n(0, 3), 2)
         return first_part + second_part
 
     def invariant_5(self):
-        first_part_1 = 3*self.n(2, 1) + self.n(0, 3)
-        first_part_2 = self.n(2, 1) + self.n(0, 3)
-        first_part_3 = pow((self.n(3, 0) + self.n(1, 2)), 2) - 3*pow((self.n(2, 1) + self.n(0, 3)), 2)
+        first_part_1 = self.n(3, 0) - 3*self.n(1, 2)
+        first_part_2 = self.n(3, 0) + self.n(1, 2)
+        first_part_3 = pow(self.n(3, 0) + self.n(1, 2), 2) - 3*pow(self.n(2, 1) + self.n(0, 3), 2)
         first_part = first_part_1 * first_part_2 * first_part_3
 
-        second_part_1 = self.n(3, 0) + 3*self.n(1, 2)
-        second_part_2 = self.n(3, 0) + self.n(1, 2)
-        second_part_3 = 3*pow((self.n(3, 0) + self.n(1, 2)), 2) - pow((self.n(2, 1) + self.n(0, 3)), 2)
+        second_part_1 = 3*self.n(2, 1) - self.n(0, 3)
+        second_part_2 = self.n(2, 1) + self.n(0, 3)
+        second_part_3 = 3*pow(self.n(3, 0) + self.n(1, 2), 2) - pow(self.n(2, 1) + self.n(0, 3), 2)
         second_part = second_part_1 * second_part_2 * second_part_3
 
         return first_part + second_part
+
+    def invariant_6(self):
+        first_part_1 = self.n(2, 0) - self.n(0, 2)
+        first_part_2 = pow(self.n(3, 0) + self.n(1, 2), 2) - pow(self.n(2, 1) + self.n(0, 3), 2)
+        first_part = first_part_1 * first_part_2
+
+        second_part_1 = 4*self.n(1, 1)
+        second_part_2 = self.n(3, 0) + self.n(1, 2)
+        second_part_3 = self.n(2, 1) + self.n(0, 3)
+        second_part = second_part_1 * second_part_2 * second_part_3
+
+        return first_part + second_part
+
+    def invariant_7(self):
+        first_part_1 = 3*self.n(2, 1) - self.n(0, 3)
+        first_part_2 = self.n(3, 0) + self.n(1, 2)
+        first_part_3 = pow(self.n(3, 0) + self.n(1, 2), 2) - 3*pow(self.n(2, 1) + self.n(0, 3), 2)
+        first_part = first_part_1 * first_part_2 * first_part_3
+
+        second_part_1 = self.n(3, 0) - 3*self.n(1, 2)
+        second_part_2 = self.n(2, 1) + self.n(0, 3)
+        second_part_3 = 3*pow(self.n(3, 0) + self.n(1, 2), 2) - pow(self.n(2, 1) + self.n(0, 3), 2)
+        second_part = second_part_1 * second_part_2 * second_part_3
+
+        return first_part - second_part
 
     def n(self, p, q):
         return self.normalized_central_moments.n(p, q)

@@ -4,6 +4,7 @@ import os
 import yaml
 
 from image_segmenter import ImageSegmenter
+from image_modifier import ImageModifier
 from moments import HuInvariants
 
 class SubwayInvariantsModel:
@@ -27,6 +28,12 @@ class SubwayInvariantsModel:
         i = 1
         mapper = {1: "Y", 2: "S", 3: "W", 4: "A", 5: "B", 6: "U"}
         results = {}
+
+        print("Erode...")
+        subway = ImageModifier().erode(subway, 3)
+        print("Dilate...")
+        subway = ImageModifier().dilate(subway, 3)
+
         for box, image in ImageSegmenter(subway).segments():
             if i > 6: break
 
