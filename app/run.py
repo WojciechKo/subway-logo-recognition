@@ -1,9 +1,10 @@
-import sys
 import os
+import sys
 import shutil
 
 from image_analizer import ImageAnalizer
 from subway_invariants_model import SubwayInvariantsModel
+
 images_dir = sys.argv[1] if len(sys.argv) > 1 else 'images'
 
 IMAGES_DIR = os.path.join(os.getcwd(), images_dir)
@@ -29,7 +30,6 @@ def analize_images(model):
         image_path = os.path.join(image_dir, '0.png')
         ImageAnalizer(model).analize(image_path)
 
-# create_subdirectory_for_each_test_image()
-
+create_subdirectory_for_each_test_image()
 model = SubwayInvariantsModel(os.path.join(IMAGES_DIR, "logo", "subway.png"))
 analize_images(model)

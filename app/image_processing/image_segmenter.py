@@ -1,6 +1,6 @@
 import numpy as np
-from image_utils import ImageUtils
-from collections import namedtuple
+
+from .image_utils import ImageUtils
 
 class Segment:
     def __init__(self, box, image):

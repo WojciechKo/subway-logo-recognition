@@ -1,11 +1,9 @@
-import cv2
-import numpy as np
 import os
 import yaml
+import numpy as np
+import cv2
 
-from image_segmenter import ImageSegmenter
-from image_modifier import ImageModifier
-from moments import HuInvariants
+from image_processing import HuInvariants, ImageModifier, ImageSegmenter
 
 class SubwayInvariantsModel:
     def __init__(self, image_path):

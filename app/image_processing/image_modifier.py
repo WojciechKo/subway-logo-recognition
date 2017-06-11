@@ -1,5 +1,6 @@
 import numpy as np
-from image_utils import ImageUtils
+
+from .image_utils import ImageUtils
 
 class ImageModifier:
     def erode(self, image, size = 1):

@@ -75,7 +75,6 @@ class HuInvariants:
     def n(self, p, q):
         return self.normalized_central_moments.n(p, q)
 
-
 class NormalizedCentralMoments:
     def __init__(self, image):
         self.memo = {}

@@ -1,6 +1,8 @@
 import numpy as np
+
 from collections import namedtuple
-from moments import HuInvariants
+
+from .moments import HuInvariants
 
 class LetterClassificator:
     def __init__(self, model):
