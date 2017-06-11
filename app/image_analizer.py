@@ -4,7 +4,7 @@ import os
 
 from image_modifier import ImageModifier
 from image_segmenter import ImageSegmenter
-from moments import HuInvariants
+from letter_classificator import LetterClassificator
 from collections import defaultdict
 import math
 from functools import reduce
@@ -93,78 +93,77 @@ class ImageAnalizer:
         image_segmenter = ImageSegmenter(subway_image)
         cv2.imwrite(os.path.join(os.path.dirname(image_path), '3_segments.png'), image_segmenter.segmented_image);
 
-        print("Labeling...")
-        labeler = SegmentLabeler(self.model)
+        print("Letter classification...")
+        classificator = LetterClassificator(self.model)
 
-        labels = defaultdict(list)
-        for box, segment in image_segmenter.segments():
-            label, distance = labeler.label(segment)
-            if label == None:
-                continue
-            labels[label].append(Segment(box, segment))
-            file_name = "4_label_" + str(int(distance*1000000)) + "_" + str(label) + ".png"
-            cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), segment);
-        print(dict(labels))
+        grouped_segments = defaultdict(list)
+        for segment in image_segmenter.segments:
+            letter, distance = classificator.classify(segment.image)
+            if letter == None: continue
+
+            grouped_segments[letter].append(segment)
+            file_name = "4_label_" + str(letter) + "_" + str(int(distance * 100)) + ".png"
+            cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), segment.image);
+
+        print(dict(grouped_segments))
+
+        if not all(letter in grouped_segments for letter in ("S","U","B","W","A","Y")):
+            print("Can not find all parts of logo")
+            return
 
         print("Finding whole logo...")
-        group_by_labels = tuple(labels.values())
-        word_combinations = cartesian(group_by_labels)
-        subways = SubwayFinder().find_subways(word_combinations)
+        logo_propositions = cartesian(tuple(grouped_segments.values()))
+        subways = SubwayFinder().find_subways(logo_propositions)
 
         for subway in subways:
+            marker = (50, 50, 255)
+            for segment in subway:
+                image[segment.box[0].min(): segment.box[0].max(), segment.box[1].min():segment.box[1].max()] = marker
+
             y = reduce(np.union1d, [segment.box[0] for segment in subway])
             x = reduce(np.union1d, [segment.box[1] for segment in subway])
-            marker = (100, 100, 100)
-            import pdb; pdb.set_trace()
+
             image[min(y):max(y) , min(x)] = marker
-            image[max(y) , min(x):max(x) + 1] = marker
+            image[max(y), min(x):max(x) + 1] = marker
             image[min(y), min(x):max(x)] = marker
             image[min(y):max(y) , max(x)] = marker
 
         cv2.imwrite(os.path.join(os.path.dirname(image_path), "4_markers.png"), image);
 
+# import pdb; pdb.set_trace()
 
 class SubwayFinder:
     def find_subways(self, combinations):
         result = []
 
-        comb_with_errors = [(comb, self.error_value(comb)) for comb in combinations]
-        print("Combinations: " + str(comb_with_errors))
-        best = self.best_fitted_combination(comb_with_errors)
-        print("Next best: " + str(best))
+        errors = [self._mean_squared_error(combination) for combination in combinations]
+        comb_with_errors = sorted(zip(combinations, errors), key=lambda pair: pair[1])
+        while(len(comb_with_errors) > 0):
+            best, error = self.best_fitted_combination(comb_with_errors)
 
-        while (best != None):
+            if best == None: break
+
+            print("Next best error: " + str(error))
+
             result.append(best)
             comb_with_errors = self.remove_combination(comb_with_errors, best)
-            print("Combinations: " + str(comb_with_errors))
-
-            best = self.best_fitted_combination(comb_with_errors)
-            print("Next best: " + str(best))
 
         return result
 
     def best_fitted_combination(self, comb_with_errors):
-        best = None
-        min_error = math.inf
+        if len(comb_with_errors) < 1:
+            return(None, math.inf)
 
-        for comb, error in comb_with_errors:
-            if error < min_error:
-                min_error = error
-                best = comb
+        return comb_with_errors[0]
 
-        return best
-
-    def error_value(self, comb):
-        x = [np.mean(segment.box[0]) for segment in comb]
-        y = [np.mean(segment.box[1]) for segment in comb]
+    def _mean_squared_error(self, segments):
+        y = [np.mean(segment.box[0]) for segment in segments]
+        x = [np.mean(segment.box[1]) for segment in segments]
 
         a, b = np.polyfit(x, y, 1)
         prediction = np.vectorize(lambda x: a*x + b)
 
-        error = np.mean((prediction(x) - y) ** 2)
-        print("Mean squared error: %.2f" % error)
-
-        return error
+        return np.mean((prediction(x) - y) ** 2)
 
     def remove_combination(self, combinations, best):
         rest_combinations = []
@@ -172,47 +171,3 @@ class SubwayFinder:
             if combination[0] != best[0] and combination[1] != best[1] and  combination[2] != best[2] and  combination[3] != best[3] and combination[4] != best[4] and combination[5] != best[5]:
                 rest_combinations.append((combination, error))
         return rest_combinations
-
-class Segment:
-    def __init__(self, box, segment):
-        self.box = box
-        self.segment = segment
-
-class SegmentLabeler:
-    def __init__(self, model):
-        self.model = model
-        self.scores = { letter: self.normalize(invariants) for letter, invariants in self.model.invariants.items() }
-
-    def normalize(self, invariants):
-        return { invariant_degree: self.z_score( value, invariant_degree) for invariant_degree, value in invariants.items() }
-
-    def label(self, image):
-        counts = np.bincount(image.flatten())
-        fillness = counts[255] / (counts[0] + counts[255])
-        if fillness > 0.60:
-            return (None, 0)
-
-        segment_invariants = HuInvariants(image).invariants()
-        distances = { letter: self.distance(letter, segment_invariants) for letter, _invariants in self.model.invariants.items() }
-
-        best_fit_letter = min(distances, key=lambda key: distances[key])        
-        best = {k: v for k, v in distances.items() if k == best_fit_letter}
-        return list(best.items())[0]
-
-    def distance(self, letter, invariants):
-        base = self.model.invariants[letter]
-        normalized = self.normalize(invariants)
-
-        select = lambda invariants: [invariants[degree] for degree in [3, 4, 7]]
-        np.set_printoptions(suppress=True)
-        dist = np.sum(np.absolute(np.subtract(select(self.scores[letter]), select(normalized))))
-
-        return dist
-
-    def z_score(self, value, invariant_degree):
-        invariants = [values[invariant_degree] for values in self.model.invariants.values()]
-        min_i = min(invariants)
-        max_i = max(invariants)
-
-        return (value - min_i) / (max_i - min_i)
-
