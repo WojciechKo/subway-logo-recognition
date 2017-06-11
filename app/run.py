@@ -26,11 +26,10 @@ def analize_images(model):
     image_dirs = [file for file in image_dirs if os.path.isdir(file)]
 
     for image_dir in image_dirs:
-        image = os.listdir(image_dir)[0]
-        image_path = os.path.join(image_dir, image)
+        image_path = os.path.join(image_dir, '0.png')
         ImageAnalizer(model).analize(image_path)
 
-create_subdirectory_for_each_test_image()
+# create_subdirectory_for_each_test_image()
 
 model = SubwayInvariantsModel(os.path.join(IMAGES_DIR, "logo", "subway.png"))
 analize_images(model)

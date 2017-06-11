@@ -6,6 +6,9 @@ from image_modifier import ImageModifier
 from image_segmenter import ImageSegmenter
 from moments import HuInvariants
 from collections import defaultdict
+import math
+from functools import reduce
+
 def cartesian(arrays, out=None):
     """
     Generate a cartesian product of input arrays.
@@ -65,26 +68,26 @@ class ImageAnalizer:
 
         image = cv2.imread(image_path, 3)
 
-        image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        h = image_hsv[:,:,0]
-        s = image_hsv[:,:,1]
-        v = image_hsv[:,:,2]
+        # image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        # h = image_hsv[:,:,0]
+        # s = image_hsv[:,:,1]
+        # v = image_hsv[:,:,2]
 
-        way_image = np.where((h > 20) & (h < 36) & (v > 200), 255, 0)
-        sub_image = np.where((s < 30) & (v > 220), 255, 0)
+        # way_image = np.where((h > 20) & (h < 36) & (v > 200), 255, 0)
+        # sub_image = np.where((s < 30) & (v > 220), 255, 0)
 
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_sub.png'), sub_image)
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_way.png'), way_image)
+        # cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_sub.png'), sub_image)
+        # cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_way.png'), way_image)
 
-        subway_image = np.maximum(way_image, sub_image)
+        # subway_image = np.maximum(way_image, sub_image)
 
-        print("Erode...")
-        subway_image = ImageModifier().erode(subway_image, 3)
-        print("Dilate...")
-        subway_image = ImageModifier().dilate(subway_image, 3)
+        # print("Erode...")
+        # subway_image = ImageModifier().erode(subway_image, 3)
+        # print("Dilate...")
+        # subway_image = ImageModifier().dilate(subway_image, 3)
 
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '2_subway.png'), subway_image)
-        # subway_image = cv2.imread(os.path.join(os.path.dirname(image_path), '2_subway.png'), 0)
+        # cv2.imwrite(os.path.join(os.path.dirname(image_path), '2_subway.png'), subway_image)
+        subway_image = cv2.imread(os.path.join(os.path.dirname(image_path), '2_subway.png'), 0)
 
         print("Segmentation...")
         image_segmenter = ImageSegmenter(subway_image)
@@ -99,15 +102,76 @@ class ImageAnalizer:
             if label == None:
                 continue
             labels[label].append(Segment(box, segment))
-            file_name = "3_label_" + str(int(distance*1000000)) + "_" + str(label) + ".png"
+            file_name = "4_label_" + str(int(distance*1000000)) + "_" + str(label) + ".png"
             cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), segment);
         print(dict(labels))
-        import pdb; pdb.set_trace()
 
-        group_by_labels = tuple(labels.values)
+        print("Finding whole logo...")
+        group_by_labels = tuple(labels.values())
         word_combinations = cartesian(group_by_labels)
-        print(word_combinations)
-        return labels
+        subways = SubwayFinder().find_subways(word_combinations)
+
+        for subway in subways:
+            y = reduce(np.union1d, [segment.box[0] for segment in subway])
+            x = reduce(np.union1d, [segment.box[1] for segment in subway])
+            marker = (100, 100, 100)
+            import pdb; pdb.set_trace()
+            image[min(y):max(y) , min(x)] = marker
+            image[max(y) , min(x):max(x) + 1] = marker
+            image[min(y), min(x):max(x)] = marker
+            image[min(y):max(y) , max(x)] = marker
+
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), "4_markers.png"), image);
+
+
+class SubwayFinder:
+    def find_subways(self, combinations):
+        result = []
+
+        comb_with_errors = [(comb, self.error_value(comb)) for comb in combinations]
+        print("Combinations: " + str(comb_with_errors))
+        best = self.best_fitted_combination(comb_with_errors)
+        print("Next best: " + str(best))
+
+        while (best != None):
+            result.append(best)
+            comb_with_errors = self.remove_combination(comb_with_errors, best)
+            print("Combinations: " + str(comb_with_errors))
+
+            best = self.best_fitted_combination(comb_with_errors)
+            print("Next best: " + str(best))
+
+        return result
+
+    def best_fitted_combination(self, comb_with_errors):
+        best = None
+        min_error = math.inf
+
+        for comb, error in comb_with_errors:
+            if error < min_error:
+                min_error = error
+                best = comb
+
+        return best
+
+    def error_value(self, comb):
+        x = [np.mean(segment.box[0]) for segment in comb]
+        y = [np.mean(segment.box[1]) for segment in comb]
+
+        a, b = np.polyfit(x, y, 1)
+        prediction = np.vectorize(lambda x: a*x + b)
+
+        error = np.mean((prediction(x) - y) ** 2)
+        print("Mean squared error: %.2f" % error)
+
+        return error
+
+    def remove_combination(self, combinations, best):
+        rest_combinations = []
+        for combination, error in combinations:
+            if combination[0] != best[0] and combination[1] != best[1] and  combination[2] != best[2] and  combination[3] != best[3] and combination[4] != best[4] and combination[5] != best[5]:
+                rest_combinations.append((combination, error))
+        return rest_combinations
 
 class Segment:
     def __init__(self, box, segment):
@@ -125,7 +189,7 @@ class SegmentLabeler:
     def label(self, image):
         counts = np.bincount(image.flatten())
         fillness = counts[255] / (counts[0] + counts[255])
-        if fillness > 0.65:
+        if fillness > 0.60:
             return (None, 0)
 
         segment_invariants = HuInvariants(image).invariants()
