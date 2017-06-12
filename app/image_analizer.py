@@ -11,14 +11,15 @@ class ImageAnalizer:
         self._now = datetime.datetime.now()
 
     def analize(self, image_path):      
-        print("\nAnalizing... " + image_path)
+        folder_path = os.path.dirname(image_path)
+        print("\nAnalizing... " + folder_path)
         image = cv2.imread(image_path, 3)
 
         self._check_time(False)
 
         print("Thresholding...", end='', flush=True)
         subway_image = ImageThresholder().extract_subway(image)
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_subway.png'), subway_image)
+        cv2.imwrite(os.path.join(folder_path, '1_subway.png'), subway_image)
         self._check_time()
 
         print("Erode..." , end='', flush=True)
@@ -28,14 +29,14 @@ class ImageAnalizer:
         print("Dilate..." , end='', flush=True)
         subway_image = ImageModifier().dilate(subway_image, 3)
 
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '2_subway.png'), subway_image)
-        # subway_image = cv2.imread(os.path.join(os.path.dirname(image_path), '2_subway.png'), 0)
+        cv2.imwrite(os.path.join(folder_path, '2_subway.png'), subway_image)
+        # subway_image = cv2.imread(os.path.join(folder_path, '2_subway.png'), 0)
 
         self._check_time()
 
         print("Segmentation..." , end='', flush=True)
         image_segmenter = ImageSegmenter(subway_image)
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '3_segments.png'), image_segmenter.segmented_image);
+        cv2.imwrite(os.path.join(folder_path, '3_segments.png'), image_segmenter.segmented_image);
         self._check_time()
 
         print("Letter classification..." , end='', flush=True)
@@ -46,7 +47,7 @@ class ImageAnalizer:
         for _letter, classifications in grouped_segments.items():
             for classification in classifications:
                 file_name = "4_label_" + str(classification.letter) + "_" + str(int(classification.distance * 1000)) + "_" + str(id(classification.segment))+ ".png"
-                cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), classification.segment.image);
+                cv2.imwrite(os.path.join(folder_path, file_name), classification.segment.image);
 
         self._check_time(False)
 
@@ -56,7 +57,7 @@ class ImageAnalizer:
         for subway in subways:
             ImageModifier().highlight_classifications(image, subway)
 
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), "4_markers.png"), image);
+        cv2.imwrite(os.path.join(folder_path, "4_markers.png"), image);
         self._check_time()
 
     def _check_time(self, display = True):
