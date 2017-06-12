@@ -1,12 +1,9 @@
 import numpy as np
 import cv2
 import os
-import itertools
 import datetime
 
-from collections import defaultdict
-from functools import reduce
-from image_processing import ImageModifier, ImageSegmenter, LetterClassificator, SubwayFinder
+from image_processing import ImageThresholder, ImageModifier, ImageSegmenter, LetterClassificator, SubwayFinder
 
 class ImageAnalizer:
     def __init__(self, model):
@@ -15,22 +12,14 @@ class ImageAnalizer:
 
     def analize(self, image_path):      
         print("\nAnalizing... " + image_path)
-
         image = cv2.imread(image_path, 3)
 
-        image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        h = image_hsv[:,:,0]
-        s = image_hsv[:,:,1]
-        v = image_hsv[:,:,2]
-
-        way_image = np.where((h > 20) & (h < 36) & (v > 200), 255, 0)
-        sub_image = np.where((s < 30) & (v > 220), 255, 0)
-
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_sub.png'), sub_image)
-        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_way.png'), way_image)
-
-        subway_image = np.maximum(way_image, sub_image)
         self._check_time(False)
+
+        print("Thresholding...", end='', flush=True)
+        subway_image = ImageThresholder().extract_subway(image)
+        cv2.imwrite(os.path.join(os.path.dirname(image_path), '1_subway.png'), subway_image)
+        self._check_time()
 
         print("Erode..." , end='', flush=True)
         subway_image = ImageModifier().erode(subway_image, 3)
@@ -51,40 +40,21 @@ class ImageAnalizer:
 
         print("Letter classification..." , end='', flush=True)
         classificator = LetterClassificator(self.model)
-
-        grouped_segments = defaultdict(list)
-        for segment in image_segmenter.segments:
-            letter, distance = classificator.classify(segment.image)
-            if letter == None: continue
-
-            grouped_segments[letter].append(segment)
-            file_name = "4_label_" + str(letter) + "_" + str(int(distance * 100)) + ".png"
-            cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), segment.image);
-
+        grouped_segments = classificator.group_segments(image_segmenter.segments)
         self._check_time()
 
-        if not all(letter in grouped_segments for letter in ("S","U","B","W","A","Y")):
-            print("Can not find all parts of logo")
-            return
+        for _letter, classifications in grouped_segments.items():
+            for classification in classifications:
+                file_name = "4_label_" + str(classification.letter) + "_" + str(int(classification.distance * 1000)) + ".png"
+                cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), classification.segment.image);
 
         self._check_time(False)
+
         print("Finding whole logo..." , end='', flush=True)
-        sorted_groups = [grouped_segments[letter] for letter in ("S","U","B","W","A","Y")]
-        logo_propositions = list(itertools.product(*sorted_groups))
-        subways = SubwayFinder().find_subways(logo_propositions)
+        subways = SubwayFinder().find_subways(grouped_segments)
 
         for subway in subways:
-            marker = (50, 50, 255)
-            for segment in subway:
-                image[segment.box[0].min(): segment.box[0].max(), segment.box[1].min():segment.box[1].max()] = marker
-
-            y = reduce(np.union1d, [segment.box[0] for segment in subway])
-            x = reduce(np.union1d, [segment.box[1] for segment in subway])
-
-            image[min(y):max(y) , min(x)] = marker
-            image[max(y), min(x):max(x) + 1] = marker
-            image[min(y), min(x):max(x)] = marker
-            image[min(y):max(y) , max(x)] = marker
+            ImageModifier().highlight_classifications(image, subway)
 
         cv2.imwrite(os.path.join(os.path.dirname(image_path), "4_markers.png"), image);
         self._check_time()

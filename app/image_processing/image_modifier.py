@@ -1,8 +1,29 @@
 import numpy as np
 
+from functools import reduce
+
 from .image_utils import ImageUtils
 
 class ImageModifier:
+    def highlight_classifications(self, image, classifications, marker = (50, 50, 255)):
+        segments = [classification.segment for classification in classifications]
+
+        for segment in segments:
+            image[segment.box[0].min(): segment.box[0].max(), segment.box[1].min():segment.box[1].max()] = marker
+
+        y = reduce(np.union1d, [segment.box[0] for segment in segments])
+        min_y = min(y)
+        max_y = max(y)
+
+        x = reduce(np.union1d, [segment.box[1] for segment in segments])
+        min_x = min(x)
+        max_x = max(x)
+
+        image[min_y:max_y , min_x] = marker
+        image[max_y, min_x:max_x + 1] = marker
+        image[min_y, min_x:max_x] = marker
+        image[min_y:max_y , max_x] = marker
+
     def erode(self, image, size = 1):
         it = np.nditer(image, flags=['multi_index'])
         result = np.zeros_like(image)

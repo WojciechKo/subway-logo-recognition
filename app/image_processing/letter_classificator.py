@@ -1,21 +1,34 @@
 import numpy as np
 
-from collections import namedtuple
+from collections import defaultdict
 
 from .moments import HuInvariants
+
+class Classification:
+    def __init__(self, segment, letter, distance):
+        self.segment = segment
+        self.letter = letter
+        self.distance = distance
 
 class LetterClassificator:
     def __init__(self, model):
         self.model = model
         self.scores = { letter: self.normalize(invariants) for letter, invariants in self.model.invariants.items() }
 
-    def normalize(self, invariants):
-        return { invariant_degree: self.z_score( value, invariant_degree) for invariant_degree, value in invariants.items() }
+    def group_segments(self, segments):
+        grouped_segments = defaultdict(list)
+
+        for segment in segments:
+            letter, distance = self.classify(segment.image)
+            if letter == None: continue
+            grouped_segments[letter].append(Classification(segment, letter, distance))
+
+        return grouped_segments
 
     def classify(self, image):
         counts = np.bincount(image.flatten())
         fillness = counts[255] / (counts[0] + counts[255])
-        if fillness > 0.70:
+        if fillness > 0.80:
             return (None, 0)
 
         segment_invariants = HuInvariants(image).invariants()
@@ -34,6 +47,9 @@ class LetterClassificator:
         dist = np.sum(np.absolute(np.subtract(select(self.scores[letter]), select(normalized))))
 
         return dist
+
+    def normalize(self, invariants):
+        return { invariant_degree: self.z_score( value, invariant_degree) for invariant_degree, value in invariants.items() }
 
     def z_score(self, value, invariant_degree):
         invariants = [values[invariant_degree] for values in self.model.invariants.values()]
