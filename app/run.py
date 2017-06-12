@@ -5,6 +5,9 @@ import shutil
 from image_analizer import ImageAnalizer
 from subway_invariants_model import SubwayInvariantsModel
 
+import logging
+logging.basicConfig(filename='execution.log', level=logging.DEBUG)
+
 images_dir = sys.argv[1] if len(sys.argv) > 1 else 'images'
 
 IMAGES_DIR = os.path.join(os.getcwd(), images_dir)

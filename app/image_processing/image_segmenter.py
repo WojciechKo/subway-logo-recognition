@@ -10,7 +10,6 @@ class Segment:
 class ImageSegmenter:
     def __init__(self, image):
         self._image = image
-
         self.segments = self.find_segments()
 
     @property

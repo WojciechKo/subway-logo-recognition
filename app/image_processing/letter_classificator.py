@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 from collections import defaultdict
@@ -19,6 +20,7 @@ class LetterClassificator:
         grouped_segments = defaultdict(list)
 
         for segment in segments:
+            logging.debug("id(segment) = " + str(id(segment)))
             letter, distance = self.classify(segment.image)
             if letter == None: continue
             grouped_segments[letter].append(Classification(segment, letter, distance))
@@ -34,6 +36,7 @@ class LetterClassificator:
         segment_invariants = HuInvariants(image).invariants()
         distances = { letter: self.distance(letter, segment_invariants) for letter, _invariants in self.model.invariants.items() }
 
+        logging.debug("segment_invariants = " + str(segment_invariants))
         best_fit_letter = min(distances, key=lambda key: distances[key])
         best = {k: v for k, v in distances.items() if k == best_fit_letter}
         return list(best.items())[0]
