@@ -32,11 +32,11 @@ class SubwayInvariantsModel:
         print("Dilate...")
         subway = ImageModifier().dilate(subway, 3)
 
-        for box, image in ImageSegmenter(subway).segments():
+        for segment in ImageSegmenter(subway).segments:
             if i > 6: break
 
-            cv2.imwrite(os.path.join(os.path.dirname(image_path), "way_segmented_{0}.png".format(mapper[i])), image);
-            results[mapper[i]] = HuInvariants(image).invariants()
+            cv2.imwrite(os.path.join(os.path.dirname(image_path), "way_segmented_{0}.png".format(mapper[i])), segment.image);
+            results[mapper[i]] = HuInvariants(segment.image).invariants()
 
             i += 1
 
