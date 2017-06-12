@@ -15,22 +15,22 @@ TEST_IMAGES_DIR = os.path.join(IMAGES_DIR, "test")
 
 def create_subdirectory_for_each_test_image():
     images = [os.path.join(TEST_IMAGES_DIR, file) for file in os.listdir(TEST_IMAGES_DIR) if not file.startswith('.')]
-    images = [file for file in images if os.path.isfile(file)]
+    images = [file for file in images if file.endswith(".png")]
 
     for image_path in images:
-        image_dir, image_extension = os.path.splitext(image_path)
+        image_dir, _image_extension = os.path.splitext(image_path)
 
         if os.path.exists(image_dir):
             shutil.rmtree(image_dir, ignore_errors=True)
         os.makedirs(image_dir)
-        shutil.copyfile(image_path, os.path.join(image_dir, "0" + image_extension))
+        shutil.copyfile(image_path, os.path.join(image_dir, "0_original.png"))
 
 def analize_images(model):
     image_dirs = [os.path.join(TEST_IMAGES_DIR, file) for file in os.listdir(TEST_IMAGES_DIR)]
     image_dirs = [file for file in image_dirs if os.path.isdir(file)]
 
     for image_dir in image_dirs:
-        image_path = os.path.join(image_dir, '0.png')
+        image_path = os.path.join(image_dir, '0_original.png')
         ImageAnalizer(model).analize(image_path)
 
 create_subdirectory_for_each_test_image()
