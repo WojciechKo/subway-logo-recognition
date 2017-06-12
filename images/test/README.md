@@ -1,0 +1,1 @@
+# Images on whih you want to find logo put in this folder (Images needs to be written in PNG format)
