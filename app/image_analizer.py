@@ -45,7 +45,7 @@ class ImageAnalizer:
 
         for _letter, classifications in grouped_segments.items():
             for classification in classifications:
-                file_name = "4_label_" + str(classification.letter) + "_" + str(int(classification.distance * 1000)) + ".png"
+                file_name = "4_label_" + str(classification.letter) + "_" + str(int(classification.distance * 1000)) + "_" + str(id(classification.segment))+ ".png"
                 cv2.imwrite(os.path.join(os.path.dirname(image_path), file_name), classification.segment.image);
 
         self._check_time(False)
