@@ -20,6 +20,7 @@ class LetterClassificator:
         grouped_segments = defaultdict(list)
 
         for segment in segments:
+            logging.debug("LetterClassificator#grouped_segments loop")
             logging.debug("id(segment) = " + str(id(segment)))
             letter, distance = self.classify(segment.image)
             if letter == None: continue
