@@ -26,8 +26,10 @@ class ImageSegmenter:
         while not it.finished:
             if it[0] == 255 and self._segmented_image[it.multi_index] == 0:
                 segment = self.find_segment(it.multi_index, group)
-                segments.append(segment)
-                group += 1
+
+                if np.all([dim > 20 for dim in segment.image.shape]):
+                    segments.append(segment)
+                    group += 1
             it.iternext()
 
         return segments
