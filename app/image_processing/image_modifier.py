@@ -5,11 +5,13 @@ from functools import reduce
 from .image_utils import ImageUtils
 
 class ImageModifier:
-    def highlight_classifications(self, image, classifications, marker = (50, 50, 255)):
-        segments = [classification.segment for classification in classifications]
+    def highlight_logos(self, image, logos, marker=(50, 50, 255), debug=False):
+        img = np.copy(image)
+        [self._highlight_classifications(img, logo, marker, debug) for logo in logos]
+        return img
 
-        for segment in segments:
-            image[segment.box[0].min(): segment.box[0].max(), segment.box[1].min():segment.box[1].max()] = marker
+    def _highlight_classifications(self, image, classifications, marker=(50, 50, 255), debug=False):
+        segments = [classification.segment for classification in classifications]
 
         y = reduce(np.union1d, [segment.box[0] for segment in segments])
         min_y = min(y)
@@ -23,6 +25,10 @@ class ImageModifier:
         image[max_y, min_x:max_x + 1] = marker
         image[min_y, min_x:max_x] = marker
         image[min_y:max_y , max_x] = marker
+
+        if debug:
+            for segment in segments:
+                image[segment.box[0].min(): segment.box[0].max(), segment.box[1].min():segment.box[1].max()] = marker
 
     def erode(self, image, size = 1):
         it = np.nditer(image, flags=['multi_index'])

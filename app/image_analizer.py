@@ -54,10 +54,12 @@ class ImageAnalizer:
         print("Finding whole logo..." , end='', flush=True)
         subways = SubwayFinder().find_subways(grouped_segments)
 
-        for subway in subways:
-            ImageModifier().highlight_classifications(image, subway)
+        markers_image = ImageModifier().highlight_logos(image, subways)
+        markers_debug_image = ImageModifier().highlight_logos(image, subways, debug=True)
 
-        cv2.imwrite(os.path.join(folder_path, "4_markers.png"), image);
+        cv2.imwrite(os.path.join(folder_path, "4_markers.png"), markers_image);
+        cv2.imwrite(os.path.join(folder_path, "4_markers_debug.png"), markers_debug_image);
+
         self._check_time()
 
     def _check_time(self, display = True):
