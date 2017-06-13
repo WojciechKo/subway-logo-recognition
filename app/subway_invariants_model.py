@@ -2,6 +2,7 @@ import os
 import yaml
 import numpy as np
 import cv2
+import logging
 
 from image_processing import HuInvariants, ImageModifier, ImageSegmenter
 
@@ -27,9 +28,10 @@ class SubwayInvariantsModel:
         mapper = {1: "Y", 2: "S", 3: "W", 4: "A", 5: "B", 6: "U"}
         results = {}
 
-        print("Erode...")
+        logger = logging.getLogger()
+        logger.info("Erode...")
         subway = ImageModifier().erode(subway, 3)
-        print("Dilate...")
+        logger.info("Dilate...")
         subway = ImageModifier().dilate(subway, 3)
 
         for segment in ImageSegmenter(subway).segments:

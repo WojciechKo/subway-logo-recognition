@@ -6,7 +6,20 @@ from image_analizer import ImageAnalizer
 from subway_invariants_model import SubwayInvariantsModel
 
 import logging
-logging.basicConfig(filename='execution.log', level=logging.DEBUG)
+
+logger = logging.getLogger()
+
+logger.setLevel(logging.DEBUG)
+
+fh = logging.FileHandler('execution.log')
+fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+fh.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 images_dir = sys.argv[1] if len(sys.argv) > 1 else 'images'
 

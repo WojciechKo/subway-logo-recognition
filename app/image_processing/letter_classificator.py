@@ -18,10 +18,11 @@ class LetterClassificator:
 
     def group_segments(self, segments):
         grouped_segments = defaultdict(list)
+        logger = logging.getLogger()
 
         for segment in segments:
-            logging.debug("LetterClassificator#grouped_segments loop")
-            logging.debug("id(segment) = " + str(id(segment)))
+            logger.debug("LetterClassificator#grouped_segments loop")
+            logger.debug("id(segment) = " + str(id(segment)))
             letter, distance = self.classify(segment.image)
             if letter == None: continue
             grouped_segments[letter].append(Classification(segment, letter, distance))
